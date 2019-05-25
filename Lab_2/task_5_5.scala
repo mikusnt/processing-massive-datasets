@@ -1,19 +1,25 @@
-/*
- * -- Task 5.5: 10 users who listened all 3 most popular songs prepared by Queen --
- */
+// Zadanie 5.5: 10 Użytkownicy odsłuchujący 3 najpopularniejsze utwory zespołu Queen
 
-// Read samples and dates - these files have comma as separator
-val samples = spark.read.format("com.databricks.spark.csv").
+// Odczytywanie listy odtworzen
+ val triplets = spark.read.
   option("sep",",").
-  csv("../Lab_5/samples_formatted.txt").
-  toDF("user_id", "song_id", "date_timestamp", "date_id")
-// Read songs file - required vertical separator as "sep"
-val songs = spark.read.format("com.databricks.spark.csv").
-  option("sep","\u000b").
-  csv("../Lab_5/tracks_unique.txt").
-  toDF("song_id", "artist", "title")
+  csv("../Lab_1/original/triplets_final.txt").
+  toDF("user_id", "song_id", "date_id")
+  
+// Odczytywanie listy piosenek
+val songs = spark.read.
+  option("sep",",").
+  csv("../Lab_1/original/songs_final.txt").
+  toDF("song_id", "old_song_id", "track_id", "artist", "title")
+  
+// Odczytywanie listy użytkowników
+val users = spark.read.
+  option("sep",",").
+  csv("../Lab_1/original/users_final.txt").
+  toDF("user_id", "old_user_id")
 
-val top_listened_queen_songs = samples.groupBy("song_id").
+// najpopularniejsze utwory Queen
+val most_queen_songs = triplets.groupBy("song_id").
   count().
   join(songs, "song_id").
   filter(col("artist") === "Queen").
@@ -21,15 +27,16 @@ val top_listened_queen_songs = samples.groupBy("song_id").
   select("title", "song_id").
   limit(3)
 
-samples.select("song_id", "user_id").
-  join(top_listened_queen_songs, "song_id").
-  filter(not(col("title").isNull)).
+// użytkownicy odsłuchujący 3 najpopularniejsze utwory
+triplets.select("song_id", "user_id").
+  join(most_queen_songs, "song_id").
   groupBy("user_id", "song_id").
   count().
   select("user_id").
   groupBy("user_id").
   count().
   filter(col("count") === 3).
-  orderBy(asc("user_id")).
-  select("user_id").
+  join(users, "user_id").
+  orderBy(asc("old_user_id")).
+  select("old_user_id").
   show(10, false)

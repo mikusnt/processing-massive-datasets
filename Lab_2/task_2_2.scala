@@ -1,6 +1,5 @@
-/*
- * -- Task 2.2: MatrixVectorMultiplication --
- */
+// Zadanie 2.2: Mnożenie macierzy przez wektor
+ 
 val vector = sc.textFile("files/x.txt").map(line => {
   val value = line.split(",")
   value(1).trim.toDouble
@@ -12,5 +11,6 @@ val matrix = sc.textFile("files/M.txt").map(line => {
   (value(0).trim.toInt, value(1).trim.toInt, value(2).trim.toDouble)
 })
 
-val result = matrix.map({case(i, j, v) => (i, v * broadcasted.value(j - 1))}).reduceByKey(_ + _)
-result.sortBy(_._1).toDF.show
+val result = matrix.map({case(i, j, v) => (i, v * broadcasted.value(j - 1))}).reduceByKey(_ + _).sortBy(_._1)
+result.toDF.show
+counts.saveAsTextFile("output/task_2_2")

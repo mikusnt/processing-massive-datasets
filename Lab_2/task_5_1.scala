@@ -1,24 +1,19 @@
-/*
- * -- Task 5.1: Ranking - 10 most popular songs --
- */
+// Zadanie 5.1: 10 najpopularniejszych piosenek
 
-// Read samples - this file has comma as separator
- val samples = spark.read.format("com.databricks.spark.csv").
+// Odczytywanie listy odtworzen
+ val triplets = spark.read.
   option("sep",",").
-  csv("../Lab_5/samples_formatted.txt").
-  toDF("user_id", "song_id", "date_timestamp", "date_id")
+  csv("../Lab_1/original/triplets_final.txt").
+  toDF("user_id", "song_id", "date_id")
 
-// Read songs file - required vertical separator as "sep"
- val songs = spark.read.format("com.databricks.spark.csv").
-  option("sep","\u000b").
-  csv("../Lab_5/tracks_unique.txt").
-  toDF("song_id", "artist", "title")
+// Odczytywanie listy piosenek
+val songs = spark.read.
+  option("sep",",").
+  csv("../Lab_1/original/songs_final.txt").
+  toDF("song_id", "old_song_id", "track_id", "artist", "title")
 
-// Group by song_id, next count elements in each group
-// Join because we must know song's artist and title
-// Select only required by response columns, order results and select first 10
-// 'false' in show required because we should show song's title (No truncate it)
-samples.groupBy("song_id").
+// Zapytanie
+triplets.groupBy("song_id").
   count().
   join(songs, "song_id").
   select("title", "artist", "count").

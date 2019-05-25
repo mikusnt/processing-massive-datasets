@@ -1,18 +1,19 @@
-/*
- * -- Task 5.4: Listened songs' count per each month --
- */
+// Zadanie 5.4: Odsłuchania piosenek w poszczególnych miesiącach
 
-// Read samples and dates - these files have comma as separator
- val samples = spark.read.format("com.databricks.spark.csv").
+// Odczytywanie listy odtworzen
+ val triplets = spark.read.
   option("sep",",").
-  csv("../Lab_5/samples_formatted.txt").
-  toDF("user_id", "song_id", "date_timestamp", "date_id")
-val dates = spark.read.format("com.databricks.spark.csv").
+  csv("../Lab_1/original/triplets_final.txt").
+  toDF("user_id", "song_id", "date_id")
+  
+// Odczytywanie dat
+val dates = spark.read.
   option("sep",",").
-  csv("../Lab_5/dates.txt").
+  csv("../Lab_1/original/dates_final.txt").
   toDF("date_id","year","month","day")
 
-samples.select("date_id").
+// Zapytanie
+triplets.select("date_id").
   join(dates, "date_id").
   groupBy("month").
   count().

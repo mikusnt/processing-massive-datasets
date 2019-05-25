@@ -1,46 +1,54 @@
-/*
- * -- Task 3: Aggregation --
- */
+// Zadanie 3: Agregacja danych
 
-// Import required Random and generate records
+// Generowanie grup i losowych danych
 import scala.util.Random
-val groups = Map(
-  0 -> (0, 1),
-  1 -> (1, 1),
-  2 -> (2, 2),
-  3 -> (3, 3),
-  4 -> (4, 3),
-  5 -> (5, 2),
-  6 -> (6, 1)
-)
-val n = 1000000
+val m = 1000
 val random = Random
-val data = sc.parallelize(
-  for (i <- 1 to n) yield {
-    val g = random.nextInt(7)
-    val (mu,sigma) = groups(g)
+val groups = Map((for (i <- 0 to m) yield {
+    val mu = random.nextDouble()*10-5
+    val std = random.nextDouble()*10-5
+        (i -> (mu, std))
+}): _*)
+        
+val n = 1000000
 
-    (g, mu + sigma * random.nextGaussian())
-  }
-)
+val data = for(i <- 1 to n) yield {
+    val g = random.nextInt(m);
+    val (mu, sigma) = groups(g); 
+        (g, mu + sigma*random.nextGaussian())
+}
 
-// Make groups in format (GROUP_ID, (Count, Value, Value^2))
-val records = (data
+val dataRDD = sc.parallelize(data)
+dataRDD.cache()
+
+
+// Rekordy (GROUP_ID, (Licznik, Suma wartości, Wartość^2))
+val records = (dataRDD
   .map(t => (t._1, (1, t._2, t._2 * t._2)))
   .reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3))
 )
-
-// Cache it to speed up calculations
 records.cache()
 
-// Aggregate in format (Group ID, (Sum count this group in all records, Average value, Variance))
-val groups_aggregated_stats = records.map(r => (r._1, (r._2._1, r._2._2 / r._2._1, ((r._2._3 - ((r._2._2 * r._2._2) / r._2._1)) / r._2._1))))
-// Print in new line each group stats
-groups_aggregated_stats.collect().foreach(println)
+// Statystyki dla grup (Group ID, (licznik, średnia, wariancja))
+val groups_stats = records.map(r => (r._1, (r._2._1, r._2._2 / r._2._1, ((r._2._3 - ((r._2._2 * r._2._2) / r._2._1)) / r._2._1))))
+groups_stats.collect().foreach(println)
 
-// Aggregate results in all groups to single group "all records"
-val all_records_stats = records.reduce((a, b) => (0, (a._2._1 + b._2._1, a._2._2 + b._2._2, a._2._3 + b._2._3)))
-val results = (all_records_stats._2._1, all_records_stats._2._2 / all_records_stats._2._1, ((all_records_stats._2._3 - ((all_records_stats._2._2 * all_records_stats._2._2) / all_records_stats._2._1)) / all_records_stats._2._1))
+// statystyki z grup
+val all_records_group = records.reduce((a, b) => (0, (a._2._1 + b._2._1, a._2._2 + b._2._2, a._2._3 + b._2._3)))
+val results_group = (all_records_group._2._1, all_records_group._2._2 / all_records_group._2._1, ((all_records_group._2._3 - ((all_records_group._2._2 * all_records_group._2._2) / all_records_group._2._1)) / all_records_group._2._1))
 
-// Return result as (Total count, Total average, Total variance)
-println(results)
+
+// Rekordy (GROUP_ID == 0, (Licznik, Suma wartości, Wartość^2))
+val all_records = (dataRDD
+  .map(t => (0, (1, t._2, t._2 * t._2)))
+  .reduceByKey((a, b) => (a._1 + b._1, a._2 + b._2, a._3 + b._3))
+)
+all_records.cache()
+
+// Statystyki z oryginalnych danych(Group ID == 0, (licznik, średnia, wariancja))
+val results = all_records.map(r => (r._1, (r._2._1, r._2._2 / r._2._1, ((r._2._3 - ((r._2._2 * r._2._2) / r._2._1)) / r._2._1))))
+results.collect().foreach(println)
+
+
+
+
